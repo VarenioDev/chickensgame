@@ -1,0 +1,30 @@
+name: ChickensGame
+version: '${project.version}'
+main: org.vareniodev.mc.chickensgame.ChickensGame
+api-version: '1.20'
+commands:
+  chspawn:
+    description: aaaaaaaa.
+    usage: /chspawn
+  team:
+    description: sets team for player.
+    usage: /team <red/blue>
+    aliases:
+      - команда
+  chstart:
+    description: aaaaaaaa.
+    usage: /chstart
+    aliases:
+      - старт
+  gamesettings:
+    description: set-up the game.
+    usage: /gamesettings <duration/count> <value>
+    aliases:
+      - gs
+      - settings
+      - настройки
+  mystats:
+    description:
+    usage: /mystats
+    aliases:
+      - статистика
