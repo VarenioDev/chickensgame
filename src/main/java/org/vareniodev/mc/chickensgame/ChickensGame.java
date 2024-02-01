@@ -36,8 +36,10 @@ public class ChickensGame extends JavaPlugin
         statsFile = new File(getDataFolder(), "stats.yml");
         statsManager.loadStatsFromFile(statsFile);
 
-        configManager = new ConfigManager(this);
-        configManager.loadConfig();
+        saveDefaultConfig();
+
+        //configManager = new ConfigManager(this);
+        //configManager.loadConfig();
     }
 
     void checkGameStart() {
@@ -57,6 +59,7 @@ public class ChickensGame extends JavaPlugin
         statsFile = new File(getDataFolder(), "stats.yml");
         statsManager.saveStatsToFile(statsFile);
 
+        configManager = new ConfigManager(this);
         configManager.saveConfig();
 
         getLogger().info("disabled!");

@@ -1,0 +1,40 @@
+delay: 25
+duration: 60
+count: 15
+
+lobby:
+  x: 0
+  y: 80
+  z: 0
+  world: 'world'
+
+redSpawn:
+  x: 0
+  y: 80
+  z: 0
+  world: 'world'
+
+blueSpawn:
+  x: 0
+  y: 80
+  z: 0
+  world: 'world'
+
+redHole:
+  x: 0
+  y: 80
+  z: 0
+  world: 'world'
+
+blueHole:
+  x: 0
+  y: 80
+  z: 0
+  world: 'world'
+
+#need for spectators
+defaultSpawn:
+  x: 0
+  y: 80
+  z: 0
+  world: 'world'

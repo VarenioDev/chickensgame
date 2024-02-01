@@ -32,10 +32,6 @@ public class ConfigManager {
 
         // Загрузка конфига из файла
         config = YamlConfiguration.loadConfiguration(configFile);
-        if(!config.contains("duration")){setDefaultDuration(10);}
-        if (!config.contains("delay")){setDefaultDelay(10);}
-        if (!config.contains("count")){setDefaultCount(2);}
-        if (!config.contains("lobby")){setLocation("lobby", new Location(Bukkit.getWorld("world"),1,1,1));}
     }
 
     public void saveConfig() {
@@ -52,12 +48,12 @@ public class ConfigManager {
     }
 
     // Добавьте другие методы для получения и установки значений в конфиге, если необходимо
-    public Location getLobbyLocation(){
-        if (config.contains("lobby.world")) {
-            World world = Bukkit.getWorld(Objects.requireNonNull(config.getString("lobby.world")));
-            double x = config.getDouble( "lobby.x");
-            double y = config.getDouble("lobby.y");
-            double z = config.getDouble( "lobby.z");
+    public Location getLocation(String loc){
+        if (config.contains(loc + ".world")) {
+            World world = Bukkit.getWorld(Objects.requireNonNull(config.getString(loc + ".world")));
+            double x = config.getDouble( loc + ".x");
+            double y = config.getDouble(loc + ".y");
+            double z = config.getDouble( loc + ".z");
 
             return new Location(world, x, y, z);
         }
@@ -70,19 +66,21 @@ public class ConfigManager {
 
     public void getChickenSpawnLocation(String path){}
 
-    public int getDefaultDuration(){return config.getInt("duration");}
-    public int getDefaultDelay(){return config.getInt("delay");}
-    public int getDefaultCount(){return config.getInt("count");}
-
-    public void setLocation(String path, Location location) {
-        config.set(path + ".world", location.getWorld().getName());
-        config.set(path + ".x", location.getX());
-        config.set(path + ".y", location.getY());
-        config.set(path + ".z", location.getZ());
+    public int getDefaultDuration(){return plugin.getConfig().getInt("duration");}
+    public int getDefaultDelay(){return plugin.getConfig().getInt("delay");}
+    public int getDefaultCount(){return plugin.getConfig().getInt("count");}
+    public void setDefaultDuration(int val) {
+        config.set("duration", val);
         saveConfig();
     }
 
-    public void setDefaultDuration(int val){config.set("duration", val); saveConfig();}
-    public void setDefaultDelay(int val){config.set("delay", val);saveConfig();}
-    public void setDefaultCount(int val){config.set("count", val);saveConfig();}
+    public void setDefaultDelay(int val) {
+        config.set("delay", val);
+        saveConfig();
+    }
+
+    public void setDefaultCount(int val) {
+        config.set("count", val);
+        saveConfig();
+    }
 }

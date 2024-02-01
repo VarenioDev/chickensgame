@@ -46,60 +46,31 @@ public class gameManager {
 	
 	private static BukkitTask spawnTask;
 	private static BukkitTask startTask;
-	
 	private static ChickensGame plugin;
-	
-	private final Scoreboard scoreboard;
-
-    private ConfigManager configManager;
-
+    private static ConfigManager configManager;
     public gameManager(ChickensGame plugin) {
-        this.scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         this.plugin = plugin;
-        //this.configManager = new ConfigManager(plugin);
+        this.configManager = new ConfigManager(plugin);
     }
 
     private static boolean gameRunning = false;
-    
-    private static int settedGameTime;
-    private static int settedChickensCount;
-    private static int settedGameDelay;
-    
-    private static int gameTime = 5;
-    private static int chickensCount = 1;
-    private static int gameDelay = 15;
-
-    private static Location spawnLoc = new Location(Bukkit.getWorld("world"), 15.5, 9, -8.5);
-
+    private static int gameTime;
+    private static int gameDelay;
     private static final String BLUE_TEAM = "blue";
     private static final String RED_TEAM = "red";
 
     private static final int MAX_PLAYERS_DIFFERENCE = 1;
     private static final int MIN_PLAYERS_FOR_GAME_START = 1;
 
-    public static void setGameDuration(int newGameDuration) {
-    	settedGameTime = newGameDuration;
-    }
-    
-    public static void setChickensCount(int newCount) {
-    	settedChickensCount = newCount;
-    }
-    
-    public static void setGameDelay(int newGameDelay) {
-    	settedGameDelay = newGameDelay;
-    }
-    
     public static boolean isGameRunning() {
         return gameRunning;
     }
-
-    public void startGame() {
-        configManager = new ConfigManager(plugin);
+    public static void startGame() {
         if (!gameRunning) {
             gameRunning = true;
         }
         if (!canStartGame()) {
-            Bukkit.broadcastMessage(ChatColor.RED + "Not enough players to start the game.");
+            //Bukkit.broadcastMessage(ChatColor.RED + "Not enough players to start the game.");
             return;
         }
         SpawnCommand.spawnSomeChicken(configManager.getDefaultCount());
@@ -139,10 +110,10 @@ public class gameManager {
                     gameTime--;
                 }
 
-                Objective scoreObjective = scoreboard.getObjective("Score");
+                Objective scoreObjective = Bukkit.getScoreboardManager().getMainScoreboard().getObjective("Score");
 
                 scoreObjective.unregister();
-                scoreObjective = scoreboard.registerNewObjective("Score", "dummy");
+                scoreObjective = Bukkit.getScoreboardManager().getMainScoreboard().registerNewObjective("Score", "dummy");
                 scoreObjective.getScore(ChatColor.GRAY + "====================").setScore(4);
                 scoreObjective.getScore("Счёт " + ChatColor.RED  + ChatColor.BOLD + "красных: " + ChatColor.BOLD + redScore).setScore(3);
                 scoreObjective.getScore("Счёт " + ChatColor.BLUE + ChatColor.BOLD + "синих: " + ChatColor.BOLD + blueScore).setScore(2);
@@ -153,13 +124,13 @@ public class gameManager {
                 
                 scoreObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    player.setScoreboard(scoreboard);
+                    player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
                 }
             }
         }, 20, 20);
     }
-    
-    public void endGame(String winner) {
+    public static void endGame(String winner) {
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         configManager = new ConfigManager(plugin);
         if (gameRunning) {
             gameRunning = false;
@@ -259,7 +230,32 @@ public class gameManager {
         	
         }, 0, 20);
     }
-    private void distributePlayers() {
+    private static void distributePlayers() {
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+
+            Team playerTeam = scoreboard.getPlayerTeam(player);
+
+            if (player.getGameMode() == GameMode.CREATIVE) {
+            	player.sendActionBar("Вы находитесь в креативе, так что игра начнётся без вас");
+            }
+            else if (playerTeam != null) {
+                teleportSpawn(playerTeam.getName(), player);
+            }
+            else {
+                teleportSpectator(player);
+            }
+        }
+    }
+    public static void teleportSpectator(Player player){
+        Location spectatorLoc = configManager.getLocation("defaultSpawn");
+
+        player.sendActionBar(ChatColor.RED + "Вы не находитесь ни в одной команде, так что игра начнётся без вас");
+        player.setGameMode(GameMode.SPECTATOR);
+        player.teleport(spectatorLoc);
+    }
+    public static void teleportSpawn(String teamName, Player player){
+
         ItemStack item = new ItemStack(Material.FISHING_ROD);
         ItemMeta meta = item.getItemMeta();
         meta.setUnbreakable(true);
@@ -268,62 +264,47 @@ public class gameManager {
         meta.setLore(lore);
         meta.setDisplayName(ChatColor.RESET + "" + ChatColor.BOLD + "Удочка");
         item.setItemMeta(meta);
-        
+
         ItemStack stick = new ItemStack(Material.STICK);
         ItemMeta stickMeta = stick.getItemMeta();
         stickMeta.setDisplayName(ChatColor.BOLD + "Палка");
         stick.setItemMeta(stickMeta);
         stick.addUnsafeEnchantment(Enchantment.KNOCKBACK, 1);
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            Location blueSpawnLocation = new Location(player.getWorld(), 10, 11, 10);
-            Location redSpawnLocation = new Location(player.getWorld(), 14, 11, 6);
-            Location specatorLoc = new Location(player.getWorld(),12,13,8);
+        Location blueSpawnLocation = configManager.getLocation("blueSpawn");
+        Location redSpawnLocation = configManager.getLocation("redSpawn");
 
-            Team playerTeam = scoreboard.getPlayerTeam(player);
+        Team playerTeam = Bukkit.getScoreboardManager().getMainScoreboard().getPlayerTeam(player);
+        teamName = playerTeam.getName();
+        ItemStack chest = new ItemStack(Material.LEATHER_CHESTPLATE);
+        LeatherArmorMeta chestMeta = (LeatherArmorMeta) chest.getItemMeta();
 
-            if (player.getGameMode() == GameMode.CREATIVE) {
-            	player.sendActionBar("Вы находитесь в креативе, так что игра начнётся без вас");
-            }
-            
-            else if (playerTeam != null) { // ���������, ���������� �� ������� ��� ������
-                String teamName = playerTeam.getName();
-                ItemStack chest = new ItemStack(Material.LEATHER_CHESTPLATE);
-                LeatherArmorMeta chestMeta = (LeatherArmorMeta) chest.getItemMeta();
-
-                // ������������� ������� � ��������������� ���������� ��� �������
-                if (teamName.equals(BLUE_TEAM)) {
-                    chestMeta.setColor(Color.BLUE);
-                    player.teleport(blueSpawnLocation);
-                } else if (teamName.equals(RED_TEAM)) {
-                    chestMeta.setColor(Color.RED);
-                    player.teleport(redSpawnLocation);
-                }
-                player.setGameMode(GameMode.ADVENTURE);
-                player.getInventory().clear();
-                player.getInventory().addItem(item);
-                player.getInventory().addItem(stick);
-                chest.setItemMeta(chestMeta);
-                player.getInventory().setChestplate(chest);
-                
-                player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1, 0.75f);
-
-                player.sendTitle(ChatColor.GREEN + "" + ChatColor.BOLD + "Игра началась!", ChatColor.BOLD + "Удачи!", 2, 50, 15);
-                Component message = Component.text()
-                        .content("Пушка")
-                        .color(TextColor.color(18, 75, 63))
-                        .build();
-                player.sendMessage(message);
-            } else {
-                // ��������� ��������, ����� ������� ��� ������ �� �������
-                player.sendActionBar(ChatColor.RED + "Вы не находитесь ни в одной команде, так что игра начнётся без вас");
-                player.setGameMode(GameMode.SPECTATOR);
-                player.teleport(specatorLoc);
-            }
+        // ������������� ������� � ��������������� ���������� ��� �������
+        if (teamName.equals(BLUE_TEAM)) {
+            chestMeta.setColor(Color.BLUE);
+            player.teleport(blueSpawnLocation);
+        } else if (teamName.equals(RED_TEAM)) {
+            chestMeta.setColor(Color.RED);
+            player.teleport(redSpawnLocation);
         }
+        player.setGameMode(GameMode.ADVENTURE);
+        player.getInventory().clear();
+        player.getInventory().addItem(item);
+        player.getInventory().addItem(stick);
+        chest.setItemMeta(chestMeta);
+        player.getInventory().setChestplate(chest);
+
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1, 0.75f);
+
+        player.sendTitle(ChatColor.GREEN + "" + ChatColor.BOLD + "Игра началась!", ChatColor.BOLD + "Удачи!", 2, 50, 15);
+        Component message = Component.text()
+                .content("Пушка")
+                .color(TextColor.color(18, 75, 63))
+                .build();
+        player.sendMessage(message);
     }
-    private void clearTeams() {
-    	
+    private static void clearTeams() {
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
     	Team blueTeam = scoreboard.getTeam("blue");
         if (blueTeam != null) {
             for (OfflinePlayer player : blueTeam.getPlayers()) {
@@ -342,8 +323,8 @@ public class gameManager {
             lobbyTeleportation(player);
         }
     }
-    public boolean canStartGame() {
-    	
+    public static boolean canStartGame() {
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
     	int blueCount = scoreboard.getTeam("blue").getSize();
         int redCount = scoreboard.getTeam("red").getSize();
 
@@ -367,6 +348,8 @@ public class gameManager {
         if (player.getGameMode() == GameMode.CREATIVE) {
         }
         else {
+            Location spawnLoc = configManager.getLocation("lobby");
+
             player.setGameMode(GameMode.ADVENTURE);
             player.setDisplayName(player.getName());
             player.setPlayerListName(player.getName());
@@ -379,7 +362,7 @@ public class gameManager {
             player.getInventory().addItem(blueTeamItem);
         }
     }
-    public void removeAllChickens() {
+    public static void removeAllChickens() {
         for (World world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntities()) {
                 if (entity.getType() == EntityType.CHICKEN) {
@@ -397,7 +380,7 @@ public class gameManager {
                 .append(Component.text(String.valueOf(blueScore)).color(TextColor.fromHexString("#0000ff")).decoration(TextDecoration.BOLD, true))
                 .build();
     }
-    public String getTime() {
+    public static String getTime() {
 		LocalTime currentTime = LocalTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
         return currentTime.format(formatter);

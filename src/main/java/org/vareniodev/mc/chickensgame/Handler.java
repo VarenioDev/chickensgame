@@ -19,6 +19,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 
 import org.bukkit.inventory.EquipmentSlot;
@@ -27,6 +28,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
@@ -38,7 +40,8 @@ import org.jetbrains.annotations.Async;
 //import net.minecraft.server.v1_12_R1.Item;
 
 public class Handler implements Listener{
-	
+
+	private static BukkitTask msgTask;
 	static int blueScore = 0;
 	static int redScore = 0;
 
@@ -50,11 +53,38 @@ public class Handler implements Listener{
         this.scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         this.plugin = plugin;
     }
+	@EventHandler
+	public void onPlayerDeath(PlayerDeathEvent event) {
+		Player player = event.getEntity();
+		String team = Objects.requireNonNull(player.getScoreboard().getPlayerTeam(player)).getName();
+		if(player.getGameMode().equals(GameMode.CREATIVE)) return;
+		if (gameManager.isGameRunning()){
+			gameManager.teleportSpectator(player);
+
+			sendActionBarRepeatedly(player, 3, 20);
+
+			Bukkit.getScheduler().runTaskLater(plugin, () -> {
+				gameManager.teleportSpawn(team, player);
+			}, 60);
+		}
+		else gameManager.lobbyTeleportation(player);
+	}
+
+	private void sendActionBarRepeatedly(Player player, int i, int interval) {
+		final int[] times = {i};
+		msgTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+			player.sendActionBar(Component.text("До возрождения: " + times[0]));
+            times[0]--;
+
+			if (times[0] <= 0) {
+				msgTask.cancel();
+			}
+		}, 0, interval);
+	}
+	@EventHandler
     public void onChickenSpawn(CreatureSpawnEvent event) {
         if (event.getEntity() instanceof Chicken) {
             Chicken chicken = (Chicken) event.getEntity();
-
-            // ������������� eggLayTime � 0, ����� ������������� ������� ���
             chicken.setAdult();
             chicken.setAgeLock(true);
             chicken.setAge(0);
@@ -80,6 +110,12 @@ public class Handler implements Listener{
     	Player p = pje.getPlayer();
 		gameManager.lobbyTeleportation(p);
     	p.sendTitle(ChatColor.GREEN + "" + ChatColor.BOLD + "Привет!", ChatColor.DARK_GREEN + "" + ChatColor.ITALIC +  "Время выбрать команду! (/team)", 2, 50, 15);
+		String eternalIP = "Вечный IP: " + Bukkit.getServer().getIp();
+		Component textComponent = Component.text()
+				.append(Component.space())
+				.append(Component.text(eternalIP))
+				.build();
+		p.sendPlayerListFooter(textComponent);
 	}
     
     @EventHandler
@@ -125,6 +161,8 @@ public class Handler implements Listener{
             Player player = event.getPlayer();
             Entity caughtEntity = event.getCaught();
 
+			caughtEntity.setVelocity(caughtEntity.getVelocity().multiply(10.0));
+
             if (caughtEntity != null) {
                 String playerName = player.getName();
                 caughtEntity.setMetadata("lastFisherman", new FixedMetadataValue(plugin, playerName));
@@ -161,7 +199,6 @@ public class Handler implements Listener{
 	
 	public void chickenCount(String m, Location loc, EntityInteractEvent e, int cost, String message, String color)
 	{
-		
 		if((int)e.getEntity().getLocation().getX() == loc.getX())
 			if((int)e.getEntity().getLocation().getY() == loc.getY())
 				if((int)e.getEntity().getLocation().getZ() == loc.getZ()) {
@@ -186,7 +223,6 @@ public class Handler implements Listener{
 		}
 
 	}
-
 	public Component scoreText(int val){
 		String score = switch (val) {
 			case 1 -> " очко!";

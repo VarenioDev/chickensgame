@@ -13,8 +13,9 @@ public class ChstartCommand implements CommandExecutor {
     }
 	
 	@Override
-	public boolean onCommand(CommandSender arg0, Command arg1, String arg2, String[] arg3) {
-		plugin.checkGameStart();
+	public boolean onCommand(CommandSender sender, Command arg1, String arg2, String[] arg3) {
+		if(gameManager.isGameRunning()) sender.sendMessage("Игра уже идет!");
+		else gameManager.startGame();
 		return true;
 	}
 
